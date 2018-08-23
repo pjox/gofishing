@@ -1,0 +1,12 @@
+{
+    "structure": "default",
+    "language": {
+        "lang": "fr"
+    },
+    "mentions": [
+        "ner",
+        "wikipedia"
+    ],
+    "nbest": false,
+    "customisation": "generic"
+}
