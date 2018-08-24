@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -13,7 +14,33 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
+
+	"rsc.io/pdf"
 )
+
+var (
+	server      string
+	inLocation  string
+	outLocation string
+	queryLoc    string
+	maxnbr      int
+	prettyPrint bool
+)
+
+type info struct {
+	pages    int
+	duration time.Duration
+}
+
+func init() {
+	flag.StringVar(&server, "s", "http://cloud.science-miner.com/nerd/service/disambiguate", "the server address")
+	flag.StringVar(&inLocation, "in", "in/", "the location of the PDF files")
+	flag.StringVar(&outLocation, "out", "out/", "the location where the JSON files will be saved")
+	flag.StringVar(&queryLoc, "q", "query.json", "the name of the query file")
+	flag.IntVar(&maxnbr, "maxnb", 10, "maximun number of concurrent requests")
+	flag.BoolVar(&prettyPrint, "p", false, "format the JSON documents")
+}
 
 func walkFiles(done <-chan struct{}, root string, skip string) (<-chan string, <-chan error) {
 	paths := make(chan string)
@@ -50,7 +77,9 @@ func newFishingRequest(client *http.Client, url, path string) (*http.Request, er
 		return nil, err
 	}
 
-	query, err := os.Open("query.json")
+	// TODO: change this for a constant,
+	// unless people think they need a different query for each file.
+	query, err := os.Open(queryLoc)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +130,7 @@ func newFishingRequest(client *http.Client, url, path string) (*http.Request, er
 }
 
 func doFishingRequest(client *http.Client, path string) {
-	request, err := newFishingRequest(client, "http://cloud.science-miner.com/nerd/service/disambiguate'", path)
+	request, err := newFishingRequest(client, server, path)
 	if err != nil {
 		panic(err)
 	}
@@ -123,26 +152,27 @@ func doFishingRequest(client *http.Client, path string) {
 	}
 	res.Body.Close()
 
-	var file []byte
-
-	file = body.Bytes()
-
-	var v map[string]interface{}
-	if err := json.Unmarshal(file, &v); err != nil {
-		panic(err)
-	}
+	var jsonFile []byte
+	jsonFile = body.Bytes()
 
 	// Format the json document
-	pretty, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		panic(err)
+	if prettyPrint {
+		var v map[string]interface{}
+		if err := json.Unmarshal(jsonFile, &v); err != nil {
+			panic(err)
+		}
+
+		jsonFile, err := json.MarshalIndent(v, "", "  ")
+		if err != nil {
+			panic(err)
+		}
+		jsonFile = append(jsonFile, '\n')
 	}
-	pretty = append(pretty, '\n')
 
 	basename := filepath.Base(path)
 
 	var name strings.Builder
-	name.WriteString("out/")
+	name.WriteString(outLocation)
 	name.WriteString(strings.TrimSuffix(basename, filepath.Ext(path)))
 	name.WriteString(".json")
 
@@ -150,11 +180,11 @@ func doFishingRequest(client *http.Client, path string) {
 	if err != nil {
 		panic(err)
 	}
-	out.Write(pretty)
+	out.Write(jsonFile)
 	out.Close()
 }
 
-func fish(root string) {
+func fish(root string) (int, time.Duration) {
 	client := &http.Client{}
 
 	done := make(chan struct{})
@@ -163,13 +193,25 @@ func fish(root string) {
 	paths, errc := walkFiles(done, root, "")
 
 	var wg sync.WaitGroup
-	maxGoroutines := 10
+	maxGoroutines := maxnbr
 	guard := make(chan struct{}, maxGoroutines)
+
+	infochan := make(chan info)
+
 	for path := range paths {
 		wg.Add(1)
 		go func(path string) {
 			guard <- struct{}{}
+			start := time.Now()
 			doFishingRequest(client, path)
+			stop := time.Since(start)
+			// Pray for this to be garbage collected
+			pdf, err := pdf.Open(path)
+			if err != nil {
+				fmt.Println(path)
+				log.Fatal(err)
+			}
+			infochan <- info{pdf.NumPage(), stop}
 			<-guard
 			wg.Done()
 		}(path)
@@ -179,13 +221,32 @@ func fish(root string) {
 	if err := <-errc; err != nil { // HLerrc
 		panic(err)
 	}
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(infochan)
+	}()
+
+	totalPages := 0
+	var sysTime time.Duration
+
+	for inform := range infochan {
+		totalPages += inform.pages
+		sysTime += inform.duration
+	}
+
+	return totalPages, sysTime
 }
 
 func main() {
-	if len(os.Args) < 2 || len(os.Args) > 3 {
-		fmt.Fprintf(os.Stderr, "usage:\n\t%s [path] [path]\n", os.Args[0])
-		os.Exit(1)
-	}
-	fish(os.Args[1])
+	flag.Parse()
+	start := time.Now()
+	totalPages, sysTime := fish(inLocation)
+	usrTime := time.Since(start)
+
+	fmt.Printf("%d Pages where processed in:\n", totalPages)
+	fmt.Printf("%v (User time)\n", usrTime)
+	fmt.Printf("%v (System time)\n", sysTime)
+	fmt.Println("This ammounts to:")
+	fmt.Printf("%f pages/s (User time)\n", float64(totalPages)/usrTime.Seconds())
+	fmt.Printf("%f pages/s (System time)\n", float64(totalPages)/sysTime.Seconds())
 }
