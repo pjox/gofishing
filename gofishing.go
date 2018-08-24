@@ -49,13 +49,11 @@ func newFishingRequest(client *http.Client, url, path string) (*http.Request, er
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
 
 	query, err := os.Open("query.json")
 	if err != nil {
 		return nil, err
 	}
-	defer query.Close()
 
 	// Prepare the reader instances to encode
 	values := map[string]io.Reader{
