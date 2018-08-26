@@ -162,7 +162,7 @@ func doFishingRequest(client *http.Client, path string) {
 			panic(err)
 		}
 
-		jsonFile, err := json.MarshalIndent(v, "", "  ")
+		jsonFile, err = json.MarshalIndent(v, "", "  ")
 		if err != nil {
 			panic(err)
 		}
@@ -227,26 +227,26 @@ func fish(root string) (int, time.Duration) {
 	}()
 
 	totalPages := 0
-	var sysTime time.Duration
+	var speedUp time.Duration
 
 	for inform := range infochan {
 		totalPages += inform.pages
-		sysTime += inform.duration
+		speedUp += inform.duration
 	}
 
-	return totalPages, sysTime
+	return totalPages, speedUp
 }
 
 func main() {
 	flag.Parse()
 	start := time.Now()
-	totalPages, sysTime := fish(inLocation)
-	usrTime := time.Since(start)
+	totalPages, speedUp := fish(inLocation)
+	totalTime := time.Since(start)
 
 	fmt.Printf("%d Pages where processed in:\n", totalPages)
-	fmt.Printf("%v (User time)\n", usrTime)
-	fmt.Printf("%v (System time)\n", sysTime)
+	fmt.Printf("%v (Total execution time)\n", totalTime)
+	fmt.Printf("%v (Parallelization speed-up)\n", speedUp)
 	fmt.Println("This ammounts to:")
-	fmt.Printf("%f pages/s (User time)\n", float64(totalPages)/usrTime.Seconds())
-	fmt.Printf("%f pages/s (System time)\n", float64(totalPages)/sysTime.Seconds())
+	fmt.Printf("%f pages/s (Total execution time)\n", float64(totalPages)/totalTime.Seconds())
+	fmt.Printf("%f pages/s (Parallelization speed-up)\n", float64(totalPages)/speedUp.Seconds())
 }
