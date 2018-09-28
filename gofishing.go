@@ -148,7 +148,7 @@ func doFishingRequest(client *http.Client, path string) {
 	body := &bytes.Buffer{}
 	_, err = body.ReadFrom(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	res.Body.Close()
 
@@ -159,12 +159,14 @@ func doFishingRequest(client *http.Client, path string) {
 	if prettyPrint {
 		var v map[string]interface{}
 		if err := json.Unmarshal(jsonFile, &v); err != nil {
-			panic(err)
+			log.Printf("Error in file %s: %v\n", path, err)
+			return
 		}
 
 		jsonFile, err = json.MarshalIndent(v, "", "  ")
 		if err != nil {
-			panic(err)
+			log.Printf("Error in file %s: %v\n", path, err)
+			return
 		}
 		jsonFile = append(jsonFile, '\n')
 	}
@@ -178,7 +180,7 @@ func doFishingRequest(client *http.Client, path string) {
 
 	out, err := os.Create(name.String())
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 	out.Write(jsonFile)
 	out.Close()
@@ -208,8 +210,10 @@ func fish(root string) (int, time.Duration) {
 			// Pray for this to be garbage collected
 			pdf, err := pdf.Open(path)
 			if err != nil {
-				fmt.Println(path)
-				log.Fatal(err)
+				log.Printf("Error in file %s: %v\n", path, err)
+				<-guard
+				wg.Done()
+				return
 			}
 			infochan <- info{pdf.NumPage(), stop}
 			<-guard
