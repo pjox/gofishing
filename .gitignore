@@ -14,3 +14,6 @@
 
 # Own
 out/*
+
+# Goreleaser
+dist/*
