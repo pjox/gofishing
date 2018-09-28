@@ -2,9 +2,9 @@
 
 An extremely fast [entity-fishing](https://github.com/kermitt2/entity-fishing) CLI tool.
 
-Go to releases and download the version corresponding to your OS and architecture
+Go to [releases](https://github.com/pjox/gofishing/releases) and download the version corresponding to your OS and architecture
 
-gofishing can make concurrent requests to an entity-fishing server allowing you to process a large quantity of PDF documents in no time. It can also format the server response so that you have a human redable JSON file (use tag `-p`).
+gofishing can make concurrent requests to an entity-fishing server allowing you to process a large quantity of PDF documents in no time. It can also format the server response so that you have a human readable JSON file (use tag `-p`).
 
 The **query file is mandatory**.
 
@@ -13,7 +13,7 @@ Usage gofishing:
   -in string
         the location of the PDF files (default "in/")
   -maxnb int
-        maximun number of concurrent requests (default 10)
+        maximum number of concurrent requests (default 10)
   -out string
         the location where the JSON files will be saved (default "out/")
   -p    format the JSON documents

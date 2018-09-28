@@ -38,7 +38,7 @@ func init() {
 	flag.StringVar(&inLocation, "in", "in/", "the location of the PDF files")
 	flag.StringVar(&outLocation, "out", "out/", "the location where the JSON files will be saved")
 	flag.StringVar(&queryLoc, "q", "query.json", "the name of the query file")
-	flag.IntVar(&maxnbr, "maxnb", 10, "maximun number of concurrent requests")
+	flag.IntVar(&maxnbr, "maxnb", 10, "maximum number of concurrent requests")
 	flag.BoolVar(&prettyPrint, "p", false, "format the JSON documents")
 }
 
@@ -247,10 +247,10 @@ func main() {
 	totalPages, speedUp := fish(inLocation)
 	totalTime := time.Since(start)
 
-	fmt.Printf("%d Pages where processed in:\n", totalPages)
+	fmt.Printf("%d Pages were processed in:\n", totalPages)
 	fmt.Printf("%v (Total execution time)\n", totalTime)
 	fmt.Printf("%v (Parallelization speed-up)\n", speedUp)
-	fmt.Println("This ammounts to:")
+	fmt.Println("This amounts to:")
 	fmt.Printf("%f pages/s (Total execution time)\n", float64(totalPages)/totalTime.Seconds())
 	fmt.Printf("%f pages/s (Parallelization speed-up)\n", float64(totalPages)/speedUp.Seconds())
 }
