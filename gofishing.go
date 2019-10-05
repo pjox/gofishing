@@ -34,12 +34,12 @@ type info struct {
 }
 
 func init() {
-	flag.StringVar(&server, "s", "http://cloud.science-miner.com/nerd/service/disambiguate", "the server address")
+	flag.StringVar(&server, "s", "https://traces1.inria.fr/nerd/service/disambiguate", "the server address")
 	flag.StringVar(&inLocation, "in", "in/", "the location of the PDF files")
 	flag.StringVar(&outLocation, "out", "out/", "the location where the JSON files will be saved")
 	flag.StringVar(&queryLoc, "q", "query.json", "the name of the query file")
 	flag.IntVar(&maxnbr, "maxnb", 10, "maximum number of concurrent requests")
-	flag.BoolVar(&prettyPrint, "p", false, "format the JSON documents")
+	flag.BoolVar(&prettyPrint, "p", true, "format the JSON documents")
 }
 
 func walkFiles(done <-chan struct{}, root string, skip string) (<-chan string, <-chan error) {
